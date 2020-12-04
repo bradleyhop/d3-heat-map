@@ -2,6 +2,13 @@
 export default {
   name: 'Footer',
 
+  data() {
+    return {
+      // dynamically bind current project repo web address
+      githubRepo: 'https://github.com/bradleyhop/d3-heat-map',
+    };
+  },
+
   computed: {
     currentYear() {
       return new Date().getFullYear();
@@ -24,7 +31,7 @@ export default {
         &#169;{{ currentYear }}
         [&nbsp;
       <a
-        href="https://github.com/bradleyhop/d3-scatter-plot"
+        :href="githubRepo"
         rel="noopener noreferer"
         target="_blank"
         class="footer-link"

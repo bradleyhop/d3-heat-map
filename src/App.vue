@@ -14,10 +14,12 @@ export default {
 <template>
   <div
     class="content"
-    role="main">
+    role="main"
+  >
     <h1
       id="title"
-      class="project-title">
+      class="project-title"
+    >
       Monthly Global Land-Surface Temperature
     </h1>
     <HeatMap />

@@ -55,7 +55,7 @@ export default {
         .attr('height', this.heightChart);
 
       // setup scale on x-axis (year)
-      const xScale = d3.scaleBand()
+      const xScale = d3.scaleLinear()
       // minus and plus one year to give padding for the data
         .domain([
           d3.min(this.heatData, (d) => d.year - 1),
@@ -67,7 +67,7 @@ export default {
         ]);
 
       // setup scale on y-axis (months)
-      const yScale = d3.scaleBand()
+      const yScale = d3.scaleLinear()
         .domain([
           d3.min(this.heatData, (d) => d.month),
           d3.max(this.heatData, (d) => d.month),
@@ -116,12 +116,15 @@ export default {
         .data(this.heatData)
         .enter()
         .append('rect')
+        .attr('class', 'cell') // project requirement
         .attr('x', (d) => xScale(d.year))
         .attr('y', (d) => yScale(d.month))
-        .attr('width', xScale.bandwidth())
-        .attr('height', yScale.bandwidth())
-        .attr('data-xvalue', (d) => d.year) // int or Date for project requirement
-        .attr('data-yvalue', (d) => d.month); // Date obj for project requirement
+        .attr('width', 2)
+        .attr('height', 6)
+        // next three attributes are project requirements
+        .attr('data-year', (d) => d.year)
+        .attr('data-month', (d) => d.month - 1) // project wanting array-style counting?!
+        .attr('data-temp', (d) => d.variance);
       // class 'dot' project requirement
       // change circle color based on whether doped or not; coordinate with legend
       //  .attr('class', (d) => (d.Doping ? 'dot doped' : 'dot not-doped'))
@@ -193,10 +196,16 @@ export default {
 
 <template>
   <div class="container-scatter-plot">
-    <h2 id="description" class="chart-title">
+    <h2
+      id="description"
+      class="chart-title"
+    >
       1753 - 2015: base temperature {{ baseTemperature }}&deg;C
     </h2>
-    <div id="scatter-plot" class="scatter-plot">
+    <div
+      id="scatter-plot"
+      class="scatter-plot"
+    >
     </div>
   </div>
 </template>

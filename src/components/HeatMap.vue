@@ -16,17 +16,6 @@ export default {
       padding: 80, // padding of chart
       wordMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
         'September', 'October', 'November', 'December'],
-      // array of objects for the graph legend
-      legendData: [
-        {
-          Text: 'Alleged Doping',
-          Doping: 'Yes',
-        },
-        {
-          Text: 'No Doping',
-          Doping: '',
-        },
-      ],
     };
   },
 
@@ -55,11 +44,11 @@ export default {
         .attr('height', this.heightChart);
 
       // setup scale on x-axis (year)
-      const xScale = d3.scaleLinear()
+      const xScale = d3.scaleTime()
       // minus and plus one year to give padding for the data
         .domain([
-          d3.min(this.heatData, (d) => d.year - 1),
-          d3.max(this.heatData, (d) => d.year + 1),
+          d3.min(this.heatData, (d) => d.year),
+          d3.max(this.heatData, (d) => d.year),
         ])
         .range([
           this.padding,
@@ -67,11 +56,8 @@ export default {
         ]);
 
       // setup scale on y-axis (months)
-      const yScale = d3.scaleLinear()
-        .domain([
-          d3.min(this.heatData, (d) => d.month),
-          d3.max(this.heatData, (d) => d.month),
-        ])
+      const yScale = d3.scaleBand()
+        .domain(this.wordMonths)
         .range([
           this.padding,
           this.heightChart - this.padding,
@@ -79,7 +65,7 @@ export default {
 
       // axis generator with no comma in the tick labels (year)
       const xAxis = d3.axisBottom(xScale)
-        .ticks(20) // shows a tick for every ten years
+        .ticks(20) // to get every ten years
         .tickFormat(d3.format('d')); // no comma in year
 
       // axis generator for y-axis
@@ -91,13 +77,13 @@ export default {
        *         .attr('id', 'legend') // project requirement
        *         .attr('transform', `translate(${this.widthChart - this.padding - 200},
        *           ${this.padding - 30} )`);
-       *
-       *       // function declaration for tooltip div element
-       *       const divTool = d3.select('#scatter-plot')
-       *         .append('div')
-       *         .attr('id', 'tooltip') // project requirement
-       *         .style('opacity', 0);
        */
+
+      // function declaration for tooltip div element
+      const divTool = d3.select('#scatter-plot')
+        .append('div')
+        .attr('id', 'tooltip') // project requirement
+        .style('opacity', 0);
 
       // draw x-axis
       svg.append('g')
@@ -117,40 +103,38 @@ export default {
         .enter()
         .append('rect')
         .attr('class', 'cell') // project requirement
-        .attr('x', (d) => xScale(d.year))
-        .attr('y', (d) => yScale(d.month))
+        .attr('x', (d) => d.year)
+        .attr('y', (d) => d.month)
         .attr('width', 2)
         .attr('height', 6)
         // next three attributes are project requirements
         .attr('data-year', (d) => d.year)
         .attr('data-month', (d) => d.month - 1) // project wanting array-style counting?!
-        .attr('data-temp', (d) => d.variance);
-      // class 'dot' project requirement
-      // change circle color based on whether doped or not; coordinate with legend
-      //  .attr('class', (d) => (d.Doping ? 'dot doped' : 'dot not-doped'))
-      // hover to show value with tooltip as defined in divTool above
-      /*         .on('mouseover', (event, d) => {
-       *           divTool
-       *             .attr('data-year', d.Year) // project requirement
-       *             .attr('class', d.Doping ? 'tooltip' : 'tooltip narrow')
-       *             .html(`<p>
-       *               <span class="name">${d.Name}</span>, ${d.Nationality}<br/>
-       *               Year - ${d.Year}, Time - ${d.Time}<br/>
-       *               <span class="doping-text">${d.Doping ? d.Doping : ''}</span>
-       *             </p>`)
-       *             .style('opacity', '1')
-       *             .style('display', 'flex') // to align items centrally
-       *             // funky offsets here because of setting .scatter-plot to display: relative;
-       *             .style('top', `${event.pageY - 25}px`)
-       *             .style('left', `${event.pageX + 10}px`);
-       *         })
-       *         .on('mouseout', () => {
-       *           divTool
-       *             .style('opacity', 0)
-       *             .style('display', 'none');
-       *         });
-       *
-       *       // one dot for each label in the legend
+        .attr('data-temp', (d) => this.round((this.baseTemperature - d.variance), 2))
+        // hover to show value with tooltip as defined in divTool above
+        .on('mouseover', (event, d) => {
+          divTool
+            .style('opacity', 1)
+            .style('display', 'block')
+            .attr('data-year', d.year) // project requirement
+            .attr('class', 'tooltip')
+            .html(`<p>
+              <span>${d.year} - ${this.wordMonths[d.month - 1]}<br/>
+              <span>Temp: ${this.round((this.baseTemperature - d.variance), 2)}&deg;</span><br/>
+              <span>Variance: ${this.round(d.variance, 2)}&deg;</span>
+             </p>`)
+            .style('display', 'flex') // to align items vertically
+          // funky offsets here because of setting .scatter-plot to display: relative;
+            .style('top', `${event.pageY - 25}px`)
+            .style('left', `${event.pageX + 10}px`);
+        })
+        .on('mouseout', () => {
+          divTool
+            .style('opacity', 0)
+            .style('display', 'none');
+        });
+
+      /*       // one dot for each label in the legend
        *       legendG.selectAll('rect')
        *         .data(this.legendData)
        *         .enter()
@@ -188,6 +172,13 @@ export default {
        *         .attr('transform', 'rotate(-90)') // vertical text
        *         .text('Time Completed (Minutes:Seconds)');
        */
+    },
+
+    // takes two arguments, both numbers; returns number rounded to given precision
+    // source: https://stackoverflow.com/questions/7342957/how-do-you-round-to-1-decimal-place-in-javascript
+    round(value, precision) {
+      const multiplier = 10 ** (precision || 0);
+      return Math.round(value * multiplier) / multiplier;
     },
 
   },

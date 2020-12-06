@@ -12,7 +12,7 @@ export default {
       heatData: undefined, // placeholder for fetch'ed data
       baseTemperature: undefined, // placeholder for text interpolation in graph description
       widthChart: 1250, // width of #scatter-plot svg
-      heightChart: 550, // height of #scatter-plot svg
+      heightChart: 600, // height of #scatter-plot svg
       padding: 80, // padding of chart
       wordMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
         'September', 'October', 'November', 'December'],
@@ -51,15 +51,15 @@ export default {
           d3.max(this.heatData, (d) => d.year),
         ])
         .range([
-          this.padding,
-          this.widthChart - this.padding,
+          this.padding, this.widthChart - this.padding,
         ]);
 
       // setup scale on y-axis (months)
       const yScale = d3.scaleBand()
-        .domain(this.wordMonths)
+        // twelve months, must set up array for scaleBand
+        .domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
         .range([
-          this.padding,
+          0,
           this.heightChart - this.padding,
         ]);
 
@@ -103,10 +103,13 @@ export default {
         .enter()
         .append('rect')
         .attr('class', 'cell') // project requirement
-        .attr('x', (d) => d.year)
-        .attr('y', (d) => d.month)
-        .attr('width', 2)
-        .attr('height', 6)
+        .attr('x', (d) => xScale(d.year))
+        // months given in numberic value, convert to array value
+        .attr('y', (d) => yScale(d.month - 1))
+        // divide visible width of chart by the length of data / number of months in a year
+        .attr('width', (this.widthChart - this.padding) / (this.heatData.length / 12))
+        // divide visible hieght of chart by number of months in a year
+        .attr('height', (this.heightChart - this.padding) / 12)
         // next three attributes are project requirements
         .attr('data-year', (d) => d.year)
         .attr('data-month', (d) => d.month - 1) // project wanting array-style counting?!
@@ -115,11 +118,10 @@ export default {
         .on('mouseover', (event, d) => {
           divTool
             .style('opacity', 1)
-            .style('display', 'block')
             .attr('data-year', d.year) // project requirement
             .attr('class', 'tooltip')
             .html(`<p>
-              <span>${d.year} - ${this.wordMonths[d.month - 1]}<br/>
+              <span class="toolHeading">${d.year} - ${this.wordMonths[d.month - 1]}</span><br/>
               <span>Temp: ${this.round((this.baseTemperature - d.variance), 2)}&deg;</span><br/>
               <span>Variance: ${this.round(d.variance, 2)}&deg;</span>
              </p>`)
@@ -232,18 +234,6 @@ export default {
   font-style: italic;
 }
 
-// dynamically assigned class for dots to show doping allegation status
-.doped {
-  fill: $guilty-red;
-  opacity: 0.9;
-}
-
-// dynamically assigned class for dots to show doping allegation status
-.not-doped {
-  fill: $clean-green;
-  opacity: 0.9;
-}
-
 .legend-text {
   font-size: 0.9rem;
 }
@@ -260,22 +250,9 @@ export default {
   height: 5rem;
   padding: 0 0.6rem 0 0.6rem;
   position: absolute;
-  text-align: left;
-  width: 14rem;
 
-  & .name {
+  & .toolHeading {
     font-weight: bold;
   }
-
-  & .doping-text {
-    font-style: italic;
-  }
-}
-
-.narrow {
-  @extend .tooltip;
-
-  height: 3rem;
-  width: 11rem;
 }
 </style>

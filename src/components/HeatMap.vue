@@ -11,11 +11,17 @@ export default {
       'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json',
       heatData: undefined, // placeholder for fetch'ed data
       baseTemperature: undefined, // placeholder for text interpolation in graph description
-      widthChart: 1250, // width of #scatter-plot svg
-      heightChart: 600, // height of #scatter-plot svg
+      widthChart: 1350, // width of #scatter-plot svg
+      heightChart: 550, // height of #scatter-plot svg
       padding: 80, // padding of chart
+      paddingTop: 30,
       wordMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
         'September', 'October', 'November', 'December'],
+      // color swatch for temp colors:
+      // Divergent color scheme started as RdYlBu from https://observablehq.com/@d3/color-schemes
+      // Colors converted to material design palate using https://materialmixer.co/
+      legendColorBand: ['#b71c1c', '#d32f2f', '#ff7043', '#ffb74d', '#ffe082', '#e0f7fa', '#b2dfdb',
+        '#80cbc4', '#5c6bc0', '#283593'],
     };
   },
 
@@ -51,15 +57,16 @@ export default {
           d3.max(this.heatData, (d) => d.year),
         ])
         .range([
-          this.padding, this.widthChart - this.padding,
+          this.padding,
+          this.widthChart - this.padding,
         ]);
 
       // setup scale on y-axis (months)
       const yScale = d3.scaleBand()
-        // twelve months, must set up array for scaleBand
+      // twelve months, must set up array for scaleBand
         .domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
         .range([
-          0,
+          this.paddingTop,
           this.heightChart - this.padding,
         ]);
 
@@ -72,18 +79,25 @@ export default {
       const yAxis = d3.axisLeft(yScale)
         .tickFormat((d, i) => this.wordMonths[i]); // replace given  numbers with names of months
 
+      // function declaration for tooltip div element
+      const divTool = d3.select('#scatter-plot')
+        .append('div')
+        .attr('id', 'tooltip') // project requirement
+        .style('opacity', 0);
+
+      // color scale
+      const colorScale = d3.scaleThreshold()
+        // domain taken from example project
+        .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
+        // color swatch given warm to cold, reverse
+        .range(this.legendColorBand.reverse());
+
       /*       // group legend elements together
        *       const legendG = svg.append('g')
        *         .attr('id', 'legend') // project requirement
        *         .attr('transform', `translate(${this.widthChart - this.padding - 200},
        *           ${this.padding - 30} )`);
        */
-
-      // function declaration for tooltip div element
-      const divTool = d3.select('#scatter-plot')
-        .append('div')
-        .attr('id', 'tooltip') // project requirement
-        .style('opacity', 0);
 
       // draw x-axis
       svg.append('g')
@@ -110,10 +124,12 @@ export default {
         .attr('width', (this.widthChart - this.padding) / (this.heatData.length / 12))
         // divide visible hieght of chart by number of months in a year
         .attr('height', (this.heightChart - this.padding) / 12)
+        // color based on temp
+        .attr('fill', (d) => colorScale(this.baseTemperature + d.variance))
         // next three attributes are project requirements
         .attr('data-year', (d) => d.year)
         .attr('data-month', (d) => d.month - 1) // project wanting array-style counting?!
-        .attr('data-temp', (d) => this.round((this.baseTemperature - d.variance), 2))
+        .attr('data-temp', (d) => d3.format('0.2f')(this.baseTemperature - d.variance))
         // hover to show value with tooltip as defined in divTool above
         .on('mouseover', (event, d) => {
           divTool
@@ -122,8 +138,8 @@ export default {
             .attr('class', 'tooltip')
             .html(`<p>
               <span class="toolHeading">${d.year} - ${this.wordMonths[d.month - 1]}</span><br/>
-              <span>Temp: ${this.round((this.baseTemperature - d.variance), 2)}&deg;</span><br/>
-              <span>Variance: ${this.round(d.variance, 2)}&deg;</span>
+              <span>Temp: ${d3.format('0.2f')(this.baseTemperature - d.variance)}&deg;</span><br/>
+              <span>Variance: ${d3.format('0.2f')(d.variance)}&deg;</span>
              </p>`)
             .style('display', 'flex') // to align items vertically
           // funky offsets here because of setting .scatter-plot to display: relative;
@@ -176,13 +192,6 @@ export default {
        */
     },
 
-    // takes two arguments, both numbers; returns number rounded to given precision
-    // source: https://stackoverflow.com/questions/7342957/how-do-you-round-to-1-decimal-place-in-javascript
-    round(value, precision) {
-      const multiplier = 10 ** (precision || 0);
-      return Math.round(value * multiplier) / multiplier;
-    },
-
   },
 };
 </script>
@@ -191,14 +200,12 @@ export default {
   <div class="container-scatter-plot">
     <h2
       id="description"
-      class="chart-title"
-    >
+      class="chart-title">
       1753 - 2015: base temperature {{ baseTemperature }}&deg;C
     </h2>
     <div
       id="scatter-plot"
-      class="scatter-plot"
-    >
+      class="scatter-plot">
     </div>
   </div>
 </template>
@@ -209,12 +216,12 @@ export default {
  */
 
 .container-scatter-plot {
-  background-color: $chart-background;
-  border-radius: 15px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
-  height: 600px;
-  margin: auto;
-  width: 1200px;
+  //background-color: $chart-background;
+  // border-radius: 15px;
+  // box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+  // height: 600px;
+  // margin: auto;
+  //width: 1200px;
 }
 
 .chart-title {
@@ -247,8 +254,7 @@ export default {
   color: $mouseover-text;
   font-family: Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
-  height: 5rem;
-  padding: 0 0.6rem 0 0.6rem;
+  padding: 0.5rem 0.6rem;
   position: absolute;
 
   & .toolHeading {

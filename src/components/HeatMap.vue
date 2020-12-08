@@ -12,12 +12,12 @@ export default {
       heatData: undefined, // placeholder for fetch'ed data
       baseTemperature: undefined, // placeholder for text interpolation in graph description
       widthChart: 1350, // width of #scatter-plot svg
-      heightChart: 550, // height of #scatter-plot svg
+      heightChart: 450, // height of #scatter-plot svg
       padding: 80, // padding of chart
-      paddingTop: 30,
+      paddingTop: 20,
       wordMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
         'September', 'October', 'November', 'December'],
-      // color swatch for temp colors:
+      // 10 count divergent color swatch for temp colors:
       // Divergent color scheme started as RdYlBu from https://observablehq.com/@d3/color-schemes
       // Colors converted to material design palate using https://materialmixer.co/
       legendColorBand: ['#b71c1c', '#d32f2f', '#ff7043', '#ffb74d', '#ffe082', '#e0f7fa', '#b2dfdb',
@@ -42,6 +42,12 @@ export default {
     // called by mounted() after async data is successfully fetch'ed
     graphInit() {
       console.log(this.heatData);
+
+      // console.log(this.stepScaleArr(
+      // d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
+      // d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
+      // this.legendColorBand.length,
+      // ));
 
       // choose element to draw our svg
       const svg = d3.select('#scatter-plot')
@@ -88,7 +94,12 @@ export default {
       // color scale
       const colorScale = d3.scaleThreshold()
         // domain taken from example project
-        .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
+        // .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
+        .domain(this.stepScaleArr(
+          d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
+          d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
+          this.legendColorBand.length,
+        ))
         // color swatch given warm to cold, reverse
         .range(this.legendColorBand.reverse());
 
@@ -129,7 +140,7 @@ export default {
         // next three attributes are project requirements
         .attr('data-year', (d) => d.year)
         .attr('data-month', (d) => d.month - 1) // project wanting array-style counting?!
-        .attr('data-temp', (d) => d3.format('0.2f')(this.baseTemperature - d.variance))
+        .attr('data-temp', (d) => d3.format('0.2f')(this.baseTemperature + d.variance))
         // hover to show value with tooltip as defined in divTool above
         .on('mouseover', (event, d) => {
           divTool
@@ -138,7 +149,7 @@ export default {
             .attr('class', 'tooltip')
             .html(`<p>
               <span class="toolHeading">${d.year} - ${this.wordMonths[d.month - 1]}</span><br/>
-              <span>Temp: ${d3.format('0.2f')(this.baseTemperature - d.variance)}&deg;</span><br/>
+              <span>Temp: ${d3.format('0.2f')(this.baseTemperature + d.variance)}&deg;</span><br/>
               <span>Variance: ${d3.format('0.2f')(d.variance)}&deg;</span>
              </p>`)
             .style('display', 'flex') // to align items vertically
@@ -192,6 +203,20 @@ export default {
        */
     },
 
+    // Takes in the minimum and maxiumum of a range of numbers; count is the number of steps between
+    //  each value; returns an array with length of count starting with the min and ending with the
+    //  max.
+    stepScaleArr(min, max, count) {
+      const arr = [];
+      const step = (max - min) / count;
+      // to return an array the size of count
+      // const arrSize = count + 1;
+      for (let i = 1; i < count + 1; i += 1) {
+        arr.push(d3.format('0.2f')(min + i * step));
+      }
+      return arr;
+    },
+
   },
 };
 </script>
@@ -201,7 +226,8 @@ export default {
     <h2
       id="description"
       class="chart-title">
-      1753 - 2015: base temperature {{ baseTemperature }}&deg;C
+      1753 - 2015<br/>
+      Base Temperature: {{ baseTemperature }}&deg;C
     </h2>
     <div
       id="scatter-plot"

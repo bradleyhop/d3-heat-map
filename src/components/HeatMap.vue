@@ -11,8 +11,8 @@ export default {
       'https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json',
       heatData: undefined, // placeholder for fetch'ed data
       baseTemperature: undefined, // placeholder for text interpolation in graph description
-      widthChart: 1350, // width of #scatter-plot svg
-      heightChart: 450, // height of #scatter-plot svg
+      widthChart: 1350, // width of #heatmap svg
+      heightChart: 450, // height of #heatmap svg
       padding: 80, // padding of chart
       paddingTop: 20,
       wordMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
@@ -20,8 +20,11 @@ export default {
       // 10 count divergent color swatch for temp colors:
       // Divergent color scheme started as RdYlBu from https://observablehq.com/@d3/color-schemes
       // Colors converted to material design palate using https://materialmixer.co/
-      legendColorBand: ['#b71c1c', '#d32f2f', '#ff7043', '#ffb74d', '#ffe082', '#e0f7fa', '#b2dfdb',
-        '#80cbc4', '#5c6bc0', '#283593'],
+      legendColorBand: ['#283593', '#5c6bc0', '#80cbc4', '#b2dfdb', '#e0f7fa', '#ffe082',
+        '#ffb74d', '#ff7043', '#d32f2f', '#b71c1c'],
+      // #legend svg dimensions
+      legendHeight: 100,
+      legendWidth: 250,
     };
   },
 
@@ -41,16 +44,8 @@ export default {
   methods: {
     // called by mounted() after async data is successfully fetch'ed
     graphInit() {
-      console.log(this.heatData);
-
-      // console.log(this.stepScaleArr(
-      // d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
-      // d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
-      // this.legendColorBand.length,
-      // ));
-
       // choose element to draw our svg
-      const svg = d3.select('#scatter-plot')
+      const svg = d3.select('#heatmap')
         .append('svg')
         .attr('width', this.widthChart)
         .attr('height', this.heightChart);
@@ -60,7 +55,7 @@ export default {
       // minus and plus one year to give padding for the data
         .domain([
           d3.min(this.heatData, (d) => d.year),
-          d3.max(this.heatData, (d) => d.year),
+          d3.max(this.heatData, (d) => d.year + 1),
         ])
         .range([
           this.padding,
@@ -85,10 +80,13 @@ export default {
       const yAxis = d3.axisLeft(yScale)
         .tickFormat((d, i) => this.wordMonths[i]); // replace given  numbers with names of months
 
+      // svg group for the mapping of data; helps keep data graphics seperate from axis
+      const map = svg.append('g')
+        .attr('class', 'map');
+
       // function declaration for tooltip div element
-      const divTool = d3.select('#scatter-plot')
+      const divTool = d3.select('#heatmap')
         .append('div')
-        .attr('id', 'tooltip') // project requirement
         .style('opacity', 0);
 
       // color scale
@@ -100,15 +98,20 @@ export default {
           d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
           this.legendColorBand.length,
         ))
-        // color swatch given warm to cold, reverse
-        .range(this.legendColorBand.reverse());
+        .range(this.legendColorBand);
 
-      /*       // group legend elements together
-       *       const legendG = svg.append('g')
-       *         .attr('id', 'legend') // project requirement
-       *         .attr('transform', `translate(${this.widthChart - this.padding - 200},
-       *           ${this.padding - 30} )`);
-       */
+      // group legend elements together
+      const legend = d3.select('#legend')
+        .append('svg')
+        .attr('height', this.legendHeight)
+        .attr('width', this.legendWidth);
+
+      const legendAxis = d3.axisBottom(colorScale);
+
+      legend.append('g')
+        .attr('transform', 'translate(0, 0)')
+        .attr('id', 'legend-axis')
+        .call(legendAxis);
 
       // draw x-axis
       svg.append('g')
@@ -123,7 +126,7 @@ export default {
         .call(yAxis);
 
       // draw data points as dots with tooltip popup on mouseover
-      svg.selectAll()
+      map.selectAll()
         .data(this.heatData)
         .enter()
         .append('rect')
@@ -131,10 +134,12 @@ export default {
         .attr('x', (d) => xScale(d.year))
         // months given in numberic value, convert to array value
         .attr('y', (d) => yScale(d.month - 1))
-        // divide visible width of chart by the length of data / number of months in a year
-        .attr('width', (this.widthChart - this.padding) / (this.heatData.length / 12))
+        // divide visible width of chart by the length of data / number of months in a year;
+        //  take into acount padding on both sides!
+        .attr('width', (this.widthChart - this.padding - this.padding) / (this.heatData.length
+          / this.wordMonths.length))
         // divide visible hieght of chart by number of months in a year
-        .attr('height', (this.heightChart - this.padding) / 12)
+        .attr('height', (this.heightChart - this.padding - this.paddingTop) / 12)
         // color based on temp
         .attr('fill', (d) => colorScale(this.baseTemperature + d.variance))
         // next three attributes are project requirements
@@ -142,18 +147,22 @@ export default {
         .attr('data-month', (d) => d.month - 1) // project wanting array-style counting?!
         .attr('data-temp', (d) => d3.format('0.2f')(this.baseTemperature + d.variance))
         // hover to show value with tooltip as defined in divTool above
-        .on('mouseover', (event, d) => {
+        .on('mouseover', () => {
           divTool
             .style('opacity', 1)
-            .attr('data-year', d.year) // project requirement
+            .style('display', 'flex'); // to align items vertically in css, also display
+        })
+        .on('mousemove', (event, d) => {
+          divTool
+            .attr('id', 'tooltip') // project requirement
             .attr('class', 'tooltip')
+            .attr('data-year', d.year) // project requirement
             .html(`<p>
               <span class="toolHeading">${d.year} - ${this.wordMonths[d.month - 1]}</span><br/>
               <span>Temp: ${d3.format('0.2f')(this.baseTemperature + d.variance)}&deg;</span><br/>
               <span>Variance: ${d3.format('0.2f')(d.variance)}&deg;</span>
-             </p>`)
-            .style('display', 'flex') // to align items vertically
-          // funky offsets here because of setting .scatter-plot to display: relative;
+            </p>`)
+            // funky offsets here because of setting .heatmap to display: relative;
             .style('top', `${event.pageY - 25}px`)
             .style('left', `${event.pageX + 10}px`);
         })
@@ -162,45 +171,6 @@ export default {
             .style('opacity', 0)
             .style('display', 'none');
         });
-
-      /*       // one dot for each label in the legend
-       *       legendG.selectAll('rect')
-       *         .data(this.legendData)
-       *         .enter()
-       *         .append('rect')
-       *         .attr('x', 105) // color squares are to the left of text
-       *         .attr('y', (d, i) => i * 21) // multiple to set each dot lower than prev
-       *         .attr('height', 12)
-       *         .attr('width', 12)
-       *         .attr('class', (d) => (d.Doping ? 'doped' : 'not-doped'));
-       *
-       *       // text labels for legend
-       *       legendG.selectAll('text')
-       *         .data(this.legendData)
-       *         .enter()
-       *         .append('text')
-       *         .attr('x', 0)
-       *         .attr('y', (d, i) => 10 + (i * 22))
-       *         .text((d) => d.Text)
-       *         .attr('class', 'legend-text');
-       *
-       *       // x-axis label
-       *       svg.append('text')
-       *         .attr('class', 'axis-label')
-       *         .attr('text-anchor', 'end')
-       *         .attr('x', this.widthChart / 2) // center ;)
-       *         .attr('y', this.heightChart - 22) // pushes text down
-       *         .text('Year');
-       *
-       *       // y-axis label
-       *       svg.append('text')
-       *         .attr('class', 'axis-label')
-       *         .attr('text-anchor', 'end')
-       *         .attr('y', 10) // pushes text to the right
-       *         .attr('x', -150) // pushes text down
-       *         .attr('transform', 'rotate(-90)') // vertical text
-       *         .text('Time Completed (Minutes:Seconds)');
-       */
     },
 
     // Takes in the minimum and maxiumum of a range of numbers; count is the number of steps between
@@ -222,7 +192,7 @@ export default {
 </script>
 
 <template>
-  <div class="container-scatter-plot">
+  <div class="container-heatmap">
     <h2
       id="description"
       class="chart-title">
@@ -230,8 +200,12 @@ export default {
       Base Temperature: {{ baseTemperature }}&deg;C
     </h2>
     <div
-      id="scatter-plot"
-      class="scatter-plot">
+      id="heatmap"
+      class="heatmap">
+    </div>
+    <div
+      id="legend"
+      class="legend">
     </div>
   </div>
 </template>
@@ -241,7 +215,7 @@ export default {
  * NB: Do not scope this component's style! D3 won't be able to see it!!!
  */
 
-.container-scatter-plot {
+.container-heatmap {
   //background-color: $chart-background;
   // border-radius: 15px;
   // box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
@@ -260,6 +234,10 @@ export default {
 // axis markers
 .tick {
   color: $text-gray;
+}
+
+.cell:hover {
+  outline: 1px solid #000;
 }
 
 .axis-label {

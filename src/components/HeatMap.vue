@@ -89,14 +89,15 @@ export default {
         .append('div')
         .style('opacity', 0);
 
-      // color scale
+      // color scale; NB! must add one to the length of array of colors because we are assigning
+      //  colors to a range between two numbers
       const colorScale = d3.scaleThreshold()
         // domain taken from example project
         // .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
         .domain(this.stepScaleArr(
           d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
           d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
-          this.legendColorBand.length,
+          this.legendColorBand.length + 1,
         ))
         .range(this.legendColorBand);
 
@@ -106,7 +107,19 @@ export default {
         .attr('height', this.legendHeight)
         .attr('width', this.legendWidth);
 
-      const legendAxis = d3.axisBottom(colorScale);
+      const legendScale = d3.scaleLinear()
+        .domain([
+          d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
+          d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
+        ])
+        .range(
+          0,
+          this.legendWidth,
+        );
+
+      const legendAxis = d3.axisBottom(legendScale)
+        .tickSize(25)
+        .tickValues(colorScale.domain());
 
       legend.append('g')
         .attr('transform', 'translate(0, 0)')
@@ -163,8 +176,8 @@ export default {
               <span>Variance: ${d3.format('0.2f')(d.variance)}&deg;</span>
             </p>`)
             // funky offsets here because of setting .heatmap to display: relative;
-            .style('top', `${event.pageY - 25}px`)
-            .style('left', `${event.pageX + 10}px`);
+            .style('top', `${event.pageY - 80}px`)
+            .style('left', `${event.pageX - 55}px`);
         })
         .on('mouseout', () => {
           divTool
@@ -252,7 +265,7 @@ export default {
 .tooltip {
   align-items: center;
   background: $mouseover;
-  border-radius: 15px;
+  border-radius: 5px;
   border-style: none;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
   color: $mouseover-text;

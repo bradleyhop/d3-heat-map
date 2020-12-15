@@ -23,8 +23,8 @@ export default {
       // 10 count divergent color swatch for temp colors:
       // Divergent color scheme started as RdYlBu from https://observablehq.com/@d3/color-schemes
       // Colors converted to material design palate using https://materialmixer.co/
-      colorBand: ['#283593', '#5c6bc0', '#80cbc4', '#b2dfdb', '#e0f7fa', '#ffe082',
-        '#ffb74d', '#ff7043', '#d32f2f', '#b71c1c', '#000'],
+      colorBand: ['#283593', '#5c6bc0', '#80cbc4', '#b2dfdb', '#e0f7fa', '#fff9c4', '#ffe082',
+        '#ffb74d', '#ff7043', '#d32f2f', '#b71c1c'],
     };
   },
 
@@ -54,6 +54,10 @@ export default {
         .attr('width', this.widthChart)
         .attr('height', this.heightChart);
 
+      /*
+       * SCALES
+       */
+
       // setup scale on x-axis (year)
       const xScale = d3.scaleTime()
       // minus and plus one year to give padding for the data
@@ -68,12 +72,29 @@ export default {
 
       // setup scale on y-axis (months)
       const yScale = d3.scaleBand()
-      // twelve months, must set up array for scaleBand
-        .domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+      // twelve months, must set up numbered array for scaleBand
+        .domain(
+          this.wordMonths.map((m) => this.wordMonths.indexOf(m)),
+        )
         .range([
           this.paddingTop,
           this.heightChart - this.padding - this.paddingBottom,
         ]);
+
+      // assign colors to a range between two numbers
+      const colorScale = d3.scaleThreshold()
+        // domain taken from example project
+        // .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
+        .domain(this.stepScaleArr(
+          minTemp,
+          maxTemp,
+          this.colorBand.length,
+        ))
+        .range(this.colorBand);
+
+      /*
+       * GROUPS
+       */
 
       // axis generator with no comma in the tick labels (year)
       const xAxis = d3.axisBottom(xScale)
@@ -90,64 +111,12 @@ export default {
 
       // function declaration for tooltip div element
       const divTool = d3.select('#heatmap')
-        .append('div')
+        .append('g')
         .style('opacity', 0);
 
-      // assign colors to a range between two numbers
-      const colorScale = d3.scaleThreshold()
-        // domain taken from example project
-        // .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
-        .domain(this.stepScaleArr(
-          minTemp,
-          maxTemp,
-          this.colorBand.length,
-        ))
-        .range(this.colorBand);
-
-      // Using https://bl.ocks.org/mbostock/4573883 to help build the legend scale
-      const legend = svg.append('g')
-        .attr('id', 'legend'); // project requirement
-
-      const legendScale = d3.scaleLinear()
-        .domain([
-          minTemp,
-          maxTemp,
-        ])
-        .range([
-          0,
-          this.legendWidth,
-        ]);
-
-      const tickVals = [d3.format('0.2f')(minTemp)].concat(colorScale.domain());
-      console.log(tickVals);
-
-      const legendAxis = d3.axisBottom(legendScale)
-        .tickSize(30)
-        .tickValues(tickVals)
-        .tickFormat(d3.format('0.2f'));
-
-      // draw legend axis
-      legend.attr('transform',
-        `translate(${this.padding + this.paddingLeft},
-          ${this.heightChart - this.paddingTop - this.padding})`)
-        .call(legendAxis);
-
-      legend.selectAll('rect')
-      // see for explantion:
-      //  https://stackoverflow.com/questions/48161257/understanding-invertextent-in-a-threshold-scale
-        .data(colorScale.range().map((color) => {
-          const d = colorScale.invertExtent(color);
-          if (d[0] === undefined) d[0] = d3.format('0.2f')(minTemp);
-          if (d[1] === undefined) d[1] = maxTemp;
-          return d;
-        }))
-        .enter()
-        .append('rect')
-        .attr('class', (d) => console.log(d))
-        .attr('x', (d) => legendScale(d[0]))
-        .attr('width', (d) => legendScale(d[1]) - legendScale(d[0]))
-        .attr('height', 20)
-        .attr('fill', (d, i) => this.colorBand[i]);
+      /*
+       * DRAW
+       */
 
       // draw x-axis
       svg.append('g')
@@ -163,7 +132,7 @@ export default {
         .call(yAxis);
 
       // draw data points as dots with tooltip popup on mouseover
-      map.selectAll()
+      map.selectAll('rect')
         .data(this.heatData)
         .enter()
         .append('rect')
@@ -208,6 +177,56 @@ export default {
             .style('opacity', 0)
             .style('display', 'none');
         });
+
+      /*
+       * LEGEND
+       */
+
+      // Using https://bl.ocks.org/mbostock/4573883 to help build the legend scale
+      const legend = svg.append('g')
+        .attr('id', 'legend'); // project requirement
+
+      const legendScale = d3.scaleLinear()
+        .domain([
+          minTemp,
+          maxTemp,
+        ])
+        .range([
+          0,
+          this.legendWidth,
+        ]);
+
+      const tickVals = [d3.format('0.2f')(minTemp)].concat(colorScale.domain());
+      console.log(tickVals);
+
+      const legendAxis = d3.axisBottom(legendScale)
+        .tickSize(30)
+        .tickValues(tickVals)
+        .tickFormat(d3.format('0.2f'));
+
+      // draw legend axis
+      legend.attr('transform',
+        `translate(${this.padding + this.paddingLeft},
+          ${this.heightChart - this.paddingTop - this.padding})`)
+        .call(legendAxis);
+
+      legend.selectAll('rect')
+      // see for explantion:
+      //  https://stackoverflow.com/questions/48161257/understanding-invertextent-in-a-threshold-scale
+        .data(colorScale.range().map((color) => {
+          const d = colorScale.invertExtent(color);
+          if (d[0] === undefined) d[0] = d3.format('0.2f')(minTemp);
+          if (d[1] === undefined) d[1] = maxTemp;
+          return d;
+        }))
+        .enter()
+        .append('rect')
+        .attr('class', (d) => console.log(d))
+        .attr('x', (d) => legendScale(d[0]))
+        .attr('width', (d) => legendScale(d[1]) - legendScale(d[0]))
+        .attr('height', 20)
+        // deviating from example because this works
+        .attr('fill', (d, i) => this.colorBand[i]);
     },
 
     // Takes in the minimum and maxiumum of a range of numbers; count is the number of steps between

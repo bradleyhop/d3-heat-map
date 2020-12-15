@@ -13,16 +13,18 @@ export default {
       baseTemperature: undefined, // placeholder for text interpolation in graph description
       widthChart: 1350, // width of #heatmap svg
       heightChart: 600, // height of #heatmap svg
+      legendWidth: 1350 / 3, // width of #legend
       padding: 80, //  general padding for chart
       paddingTop: 20, // padding on top
-      paddingBottom: 60, // room for the legend at bottom of svg
+      paddingBottom: 70, // room for the legend at bottom of svg and map axis label
+      paddingLeft: 15, // room for map y axis label
       wordMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
         'September', 'October', 'November', 'December'],
       // 10 count divergent color swatch for temp colors:
       // Divergent color scheme started as RdYlBu from https://observablehq.com/@d3/color-schemes
       // Colors converted to material design palate using https://materialmixer.co/
       colorBand: ['#283593', '#5c6bc0', '#80cbc4', '#b2dfdb', '#e0f7fa', '#ffe082',
-        '#ffb74d', '#ff7043', '#d32f2f', '#b71c1c'],
+        '#ffb74d', '#ff7043', '#d32f2f', '#b71c1c', '#000'],
     };
   },
 
@@ -42,6 +44,10 @@ export default {
   methods: {
     // called by mounted() after async data is successfully fetch'ed
     graphInit() {
+      // Only compute min and max temp once
+      const minTemp = d3.min(this.heatData, (d) => this.baseTemperature + d.variance);
+      const maxTemp = d3.max(this.heatData, (d) => this.baseTemperature + d.variance);
+
       // choose element to draw our svg
       const svg = d3.select('#heatmap')
         .append('svg')
@@ -56,7 +62,7 @@ export default {
           d3.max(this.heatData, (d) => d.year + 1),
         ])
         .range([
-          this.padding,
+          this.padding + this.paddingLeft,
           this.widthChart - this.padding,
         ]);
 
@@ -87,80 +93,72 @@ export default {
         .append('div')
         .style('opacity', 0);
 
-      console.log(this.stepScaleArr(
-        d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
-        d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
-        // N + 1
-        this.colorBand.length,
-      ));
-
-      // color scale; NB! must add one to the length of array of colors because we are assigning
-      //  colors to a range between two numbers
+      // assign colors to a range between two numbers
       const colorScale = d3.scaleThreshold()
         // domain taken from example project
         // .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
         .domain(this.stepScaleArr(
-          d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
-          d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
-          // N + 1
-          this.colorBand.length + 1,
+          minTemp,
+          maxTemp,
+          this.colorBand.length,
         ))
         .range(this.colorBand);
 
       // Using https://bl.ocks.org/mbostock/4573883 to help build the legend scale
       const legend = svg.append('g')
-        .attr('class', 'legend');
+        .attr('id', 'legend'); // project requirement
 
       const legendScale = d3.scaleLinear()
         .domain([
-          d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
-          d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
+          minTemp,
+          maxTemp,
         ])
         .range([
           0,
-          (this.widthChart / 4),
+          this.legendWidth,
         ]);
 
+      const tickVals = [d3.format('0.2f')(minTemp)].concat(colorScale.domain());
+      console.log(tickVals);
+
       const legendAxis = d3.axisBottom(legendScale)
-        .tickSize(20)
-        .tickValues(colorScale.domain())
+        .tickSize(30)
+        .tickValues(tickVals)
         .tickFormat(d3.format('0.2f'));
 
-      // draw legend asix
+      // draw legend axis
       legend.attr('transform',
-        `translate(${this.padding}, ${this.heightChart - this.paddingTop - this.padding})`)
-        .attr('id', 'legend-axis')
+        `translate(${this.padding + this.paddingLeft},
+          ${this.heightChart - this.paddingTop - this.padding})`)
         .call(legendAxis);
 
-      legend.select('.domain')
-        .remove();
-
-      legend.selectAll()
+      legend.selectAll('rect')
       // see for explantion:
       //  https://stackoverflow.com/questions/48161257/understanding-invertextent-in-a-threshold-scale
         .data(colorScale.range().map((color) => {
           const d = colorScale.invertExtent(color);
-          if (d[0] == null) d[0] = colorScale.domain()[0];
-          if (d[1] == null) d[1] = colorScale.domain()[1];
+          if (d[0] === undefined) d[0] = d3.format('0.2f')(minTemp);
+          if (d[1] === undefined) d[1] = maxTemp;
           return d;
         }))
         .enter()
         .append('rect')
-        .attr('class', 'legend-cell')
+        .attr('class', (d) => console.log(d))
         .attr('x', (d) => legendScale(d[0]))
-        .attr('width', (d) => legendScale(d[1] - legendScale(d[0])))
+        .attr('width', (d) => legendScale(d[1]) - legendScale(d[0]))
         .attr('height', 20)
-        .attr('fill', (d) => colorScale(d[0]));
+        .attr('fill', (d, i) => this.colorBand[i]);
 
       // draw x-axis
       svg.append('g')
-        .attr('transform', `translate(0, ${this.heightChart - this.padding - this.paddingBottom})`)
+        .attr('transform', `translate(0,
+          ${this.heightChart - this.padding - this.paddingBottom})`)
         .attr('id', 'x-axis') // project requirement
         .call(xAxis);
 
       // draw y-axis
       svg.append('g')
-        .attr('transform', `translate(${this.padding}, 0)`)
+        .attr('transform', `translate(${this.padding + this.paddingLeft}, 0)`)
         .attr('id', 'y-axis') // project requirement
         .call(yAxis);
 
@@ -175,8 +173,8 @@ export default {
         .attr('y', (d) => yScale(d.month - 1))
         // divide visible width of chart by the length of data / number of months in a year;
         //  take into acount padding on both sides!
-        .attr('width', (this.widthChart - this.padding - this.padding) / (this.heatData.length
-          / this.wordMonths.length))
+        .attr('width', (this.widthChart - this.padding - this.padding)
+          / (this.heatData.length / this.wordMonths.length))
         // divide visible hieght of chart by number of months in a year
         .attr('height', (this.heightChart - this.padding - this.paddingTop - this.paddingBottom) / 12)
         // color based on temp

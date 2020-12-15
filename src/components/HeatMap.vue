@@ -12,19 +12,17 @@ export default {
       heatData: undefined, // placeholder for fetch'ed data
       baseTemperature: undefined, // placeholder for text interpolation in graph description
       widthChart: 1350, // width of #heatmap svg
-      heightChart: 450, // height of #heatmap svg
-      padding: 80, // padding of chart
-      paddingTop: 20,
+      heightChart: 600, // height of #heatmap svg
+      padding: 80, //  general padding for chart
+      paddingTop: 20, // padding on top
+      paddingBottom: 60, // room for the legend at bottom of svg
       wordMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
         'September', 'October', 'November', 'December'],
       // 10 count divergent color swatch for temp colors:
       // Divergent color scheme started as RdYlBu from https://observablehq.com/@d3/color-schemes
       // Colors converted to material design palate using https://materialmixer.co/
-      legendColorBand: ['#283593', '#5c6bc0', '#80cbc4', '#b2dfdb', '#e0f7fa', '#ffe082',
+      colorBand: ['#283593', '#5c6bc0', '#80cbc4', '#b2dfdb', '#e0f7fa', '#ffe082',
         '#ffb74d', '#ff7043', '#d32f2f', '#b71c1c'],
-      // #legend svg dimensions
-      legendHeight: 100,
-      legendWidth: 250,
     };
   },
 
@@ -68,7 +66,7 @@ export default {
         .domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
         .range([
           this.paddingTop,
-          this.heightChart - this.padding,
+          this.heightChart - this.padding - this.paddingBottom,
         ]);
 
       // axis generator with no comma in the tick labels (year)
@@ -89,6 +87,13 @@ export default {
         .append('div')
         .style('opacity', 0);
 
+      console.log(this.stepScaleArr(
+        d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
+        d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
+        // N + 1
+        this.colorBand.length,
+      ));
+
       // color scale; NB! must add one to the length of array of colors because we are assigning
       //  colors to a range between two numbers
       const colorScale = d3.scaleThreshold()
@@ -97,38 +102,59 @@ export default {
         .domain(this.stepScaleArr(
           d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
           d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
-          this.legendColorBand.length + 1,
+          // N + 1
+          this.colorBand.length + 1,
         ))
-        .range(this.legendColorBand);
+        .range(this.colorBand);
 
-      // group legend elements together
-      const legend = d3.select('#legend')
-        .append('svg')
-        .attr('height', this.legendHeight)
-        .attr('width', this.legendWidth);
+      // Using https://bl.ocks.org/mbostock/4573883 to help build the legend scale
+      const legend = svg.append('g')
+        .attr('class', 'legend');
 
       const legendScale = d3.scaleLinear()
         .domain([
           d3.min(this.heatData, (d) => this.baseTemperature + d.variance),
           d3.max(this.heatData, (d) => this.baseTemperature + d.variance),
         ])
-        .range(
+        .range([
           0,
-          this.legendWidth,
-        );
+          (this.widthChart / 4),
+        ]);
 
       const legendAxis = d3.axisBottom(legendScale)
-        .tickSize(25)
-        .tickValues(colorScale.domain());
+        .tickSize(20)
+        .tickValues(colorScale.domain())
+        .tickFormat(d3.format('0.2f'));
 
-      legend.append('g')
-        .attr('transform', 'translate(0, 0)')
+      // draw legend asix
+      legend.attr('transform',
+        `translate(${this.padding}, ${this.heightChart - this.paddingTop - this.padding})`)
         .attr('id', 'legend-axis')
         .call(legendAxis);
 
+      legend.select('.domain')
+        .remove();
+
+      legend.selectAll()
+      // see for explantion:
+      //  https://stackoverflow.com/questions/48161257/understanding-invertextent-in-a-threshold-scale
+        .data(colorScale.range().map((color) => {
+          const d = colorScale.invertExtent(color);
+          if (d[0] == null) d[0] = colorScale.domain()[0];
+          if (d[1] == null) d[1] = colorScale.domain()[1];
+          return d;
+        }))
+        .enter()
+        .append('rect')
+        .attr('class', 'legend-cell')
+        .attr('x', (d) => legendScale(d[0]))
+        .attr('width', (d) => legendScale(d[1] - legendScale(d[0])))
+        .attr('height', 20)
+        .attr('fill', (d) => colorScale(d[0]));
+
       // draw x-axis
       svg.append('g')
-        .attr('transform', `translate(0, ${this.heightChart - this.padding})`)
+        .attr('transform', `translate(0, ${this.heightChart - this.padding - this.paddingBottom})`)
         .attr('id', 'x-axis') // project requirement
         .call(xAxis);
 
@@ -152,7 +178,7 @@ export default {
         .attr('width', (this.widthChart - this.padding - this.padding) / (this.heatData.length
           / this.wordMonths.length))
         // divide visible hieght of chart by number of months in a year
-        .attr('height', (this.heightChart - this.padding - this.paddingTop) / 12)
+        .attr('height', (this.heightChart - this.padding - this.paddingTop - this.paddingBottom) / 12)
         // color based on temp
         .attr('fill', (d) => colorScale(this.baseTemperature + d.variance))
         // next three attributes are project requirements
@@ -192,10 +218,9 @@ export default {
     stepScaleArr(min, max, count) {
       const arr = [];
       const step = (max - min) / count;
-      // to return an array the size of count
-      // const arrSize = count + 1;
+      const base = min;
       for (let i = 1; i < count + 1; i += 1) {
-        arr.push(d3.format('0.2f')(min + i * step));
+        arr.push(d3.format('0.2f')(base + i * step));
       }
       return arr;
     },
@@ -216,10 +241,6 @@ export default {
       id="heatmap"
       class="heatmap">
     </div>
-    <div
-      id="legend"
-      class="legend">
-    </div>
   </div>
 </template>
 
@@ -228,20 +249,10 @@ export default {
  * NB: Do not scope this component's style! D3 won't be able to see it!!!
  */
 
-.container-heatmap {
-  //background-color: $chart-background;
-  // border-radius: 15px;
-  // box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
-  // height: 600px;
-  // margin: auto;
-  //width: 1200px;
-}
-
 .chart-title {
   color: $text-gray;
   font-family: "Roboto", Helvetica, Arial, sans-serif;
   margin-bottom: 0;
-  padding-top: 1rem;
 }
 
 // axis markers

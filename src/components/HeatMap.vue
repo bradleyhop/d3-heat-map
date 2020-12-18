@@ -105,7 +105,7 @@ export default {
       const yAxis = d3.axisLeft(yScale)
         .tickFormat((d, i) => this.wordMonths[i]); // replace given  numbers with names of months
 
-      // svg group for the mapping of data; helps keep data graphics seperate from axis
+      // svg group for the mapping of data; helps keep data graphics separate from axis
       const map = svg.append('g')
         .attr('class', 'map');
 
@@ -138,13 +138,13 @@ export default {
         .append('rect')
         .attr('class', 'cell') // project requirement
         .attr('x', (d) => xScale(d.year))
-        // months given in numberic value, convert to array value
+        // months given in numeric value, convert to array value
         .attr('y', (d) => yScale(d.month - 1))
         // divide visible width of chart by the length of data / number of months in a year;
-        //  take into acount padding on both sides!
+        //  take into account padding on both sides!
         .attr('width', (this.widthChart - this.padding - this.padding)
           / (this.heatData.length / this.wordMonths.length))
-        // divide visible hieght of chart by number of months in a year
+        // divide visible height of chart by number of months in a year
         .attr('height', (this.heightChart - this.padding - this.paddingTop - this.paddingBottom) / 12)
         // color based on temp
         .attr('fill', (d) => colorScale(this.baseTemperature + d.variance))
@@ -196,40 +196,68 @@ export default {
           this.legendWidth,
         ]);
 
-      const tickVals = [d3.format('0.2f')(minTemp)].concat(colorScale.domain());
-      console.log(tickVals);
-
       const legendAxis = d3.axisBottom(legendScale)
         .tickSize(30)
-        .tickValues(tickVals)
+        // add min temp to label range b/c not in domain
+        .tickValues([d3.format('0.2f')(minTemp)].concat(colorScale.domain()))
         .tickFormat(d3.format('0.2f'));
 
       // draw legend axis
       legend.attr('transform',
         `translate(${this.padding + this.paddingLeft},
-          ${this.heightChart - this.paddingTop - this.padding})`)
+          ${this.heightChart - this.paddingTop - 70})`)
         .call(legendAxis);
 
       legend.selectAll('rect')
-      // see for explantion:
+      // see for explanation:
       //  https://stackoverflow.com/questions/48161257/understanding-invertextent-in-a-threshold-scale
         .data(colorScale.range().map((color) => {
           const d = colorScale.invertExtent(color);
+          // to set lowest range
           if (d[0] === undefined) d[0] = d3.format('0.2f')(minTemp);
-          if (d[1] === undefined) d[1] = maxTemp;
+          // to set highest range
+          if (d[1] === undefined) d[1] = d3.format('0.2f')(maxTemp);
           return d;
         }))
         .enter()
         .append('rect')
-        .attr('class', (d) => console.log(d))
+        .attr('class', 'legend-cell')
         .attr('x', (d) => legendScale(d[0]))
         .attr('width', (d) => legendScale(d[1]) - legendScale(d[0]))
         .attr('height', 20)
         // deviating from example because this works
         .attr('fill', (d, i) => this.colorBand[i]);
+
+      /*
+       * AXIS LABELS
+       */
+
+      // x-axis label
+      svg.append('text')
+        .attr('class', 'axis-label')
+        .attr('text-anchor', 'end')
+        .attr('x', this.widthChart / 2) // center ;)
+        .attr('y', this.heightChart - this.padding - 30) // pushes text down
+        .text('YEAR');
+
+      // y-axis label
+      svg.append('text')
+        .attr('class', 'axis-label')
+        .attr('text-anchor', 'end')
+        .attr('x', -200) // higher negative value pushes text down
+        .attr('y', 30) // higher positive value pushes text to the right
+        .attr('transform', 'rotate(-90)') // vertical text
+        .text('MONTH');
+
+      svg.append('text')
+        .attr('class', 'axis-label')
+        .attr('text-anchor', 'end')
+        .attr('x', (this.widthChart / 3))
+        .attr('y', this.heightChart - 30)
+        .text('Temperature Variance in Degrees Celcius');
     },
 
-    // Takes in the minimum and maxiumum of a range of numbers; count is the number of steps between
+    // Takes in the minimum and maximum of a range of numbers; count is the number of steps between
     //  each value; returns an array with length of count starting with the min and ending with the
     //  max.
     stepScaleArr(min, max, count) {
@@ -263,7 +291,7 @@ export default {
 
 <style lang="scss">
 /*
- * NB: Do not scope this component's style! D3 won't be able to see it!!!
+ * NB: Do not scope this component's style! D3 won't be able to see it!?!?!
  */
 
 .chart-title {
@@ -275,6 +303,7 @@ export default {
 // axis markers
 .tick {
   color: $text-gray;
+  font-family: 'Open Sans', sans-serif;
 }
 
 .cell:hover {
@@ -284,6 +313,7 @@ export default {
 .axis-label {
   font-size: 0.8rem;
   font-style: italic;
+  font-family: "Roboto", Helvetica, Helvetica, sans-serif;
 }
 
 .legend-text {

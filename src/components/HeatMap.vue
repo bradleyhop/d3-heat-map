@@ -29,7 +29,6 @@ export default {
   },
 
   created() {
-    // fetch data provide by freeCodeCamp api
     fetch(this.dataURL)
       .then((response) => response.json())
       .then((data) => {
@@ -44,7 +43,6 @@ export default {
   methods: {
     // called by mounted() after async data is successfully fetch'ed
     graphInit() {
-      // Only compute min and max temp once
       const minTemp = d3.min(this.heatData, (d) => this.baseTemperature + d.variance);
       const maxTemp = d3.max(this.heatData, (d) => this.baseTemperature + d.variance);
 
@@ -83,8 +81,6 @@ export default {
 
       // assign colors to a range between two numbers
       const colorScale = d3.scaleThreshold()
-        // domain taken from example project
-        // .domain([2.8, 3.9, 5.0, 6.1, 7.2, 8.3, 9.5, 10.6, 11.7, 12.8])
         .domain(this.stepScaleArr(
           minTemp,
           maxTemp,
@@ -131,7 +127,7 @@ export default {
         .attr('id', 'y-axis') // project requirement
         .call(yAxis);
 
-      // draw data points as dots with tooltip popup on mouseover
+      // draw data points as rectangles with tooltip popup on mouseover
       map.selectAll('rect')
         .data(this.heatData)
         .enter()
@@ -249,6 +245,7 @@ export default {
         .attr('transform', 'rotate(-90)') // vertical text
         .text('MONTH');
 
+      // legend-axis label
       svg.append('text')
         .attr('class', 'axis-label')
         .attr('text-anchor', 'end')
@@ -303,7 +300,7 @@ export default {
 // axis markers
 .tick {
   color: $text-gray;
-  font-family: 'Open Sans', sans-serif;
+  font-family: "Open Sans", sans-serif;
 }
 
 .cell:hover {
@@ -327,7 +324,7 @@ export default {
   border-style: none;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
   color: $mouseover-text;
-  font-family: Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Roboto", Helvetica, Arial, sans-serif;
   font-size: 13px;
   padding: 0.5rem 0.6rem;
   position: absolute;

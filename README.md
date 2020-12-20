@@ -1,24 +1,16 @@
 # d3-heat-map
 
-## Project setup
-```
-npm install
-```
+Data Visualization Project for freeCodeCamp.org Data Visualization Project:
+Visualize Data with a Heat Map. This implementation uses Vue & D3 as the main techonology stacks.
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+## Project Info
 
-### Compiles and minifies for production
-```
-npm run build
-```
+See the [User
+Stories](https://www.freecodecamp.org/learn/data-visualization/data-visualization-projects/visualize-data-with-a-heat-map)
+for project requirements.
 
-### Lints and fixes files
-```
-npm run lint
-```
+## Testing
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+freeCodeCamp offers a script that will test each User Story point. To test,
+select the testing component, choose D3 Heat Map from the dropdown menu, and
+hit 'Run Tests'. Select the 'Tests' button to see details of test.

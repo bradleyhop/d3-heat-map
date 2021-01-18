@@ -13,7 +13,7 @@ export default {
       baseTemperature: undefined, // placeholder for text interpolation in graph description
       widthChart: 1350, // width of #heatmap svg
       heightChart: 600, // height of #heatmap svg
-      legendWidth: 1350 / 3, // width of #legend
+      legendWidth: 1350 / 3, // width of #legend; a third of width of chart
       padding: 80, //  general padding for chart
       paddingTop: 20, // padding on top
       paddingBottom: 70, // room for the legend at bottom of svg and map axis label
@@ -70,8 +70,8 @@ export default {
 
       // setup scale on y-axis (months)
       const yScale = d3.scaleBand()
-      // twelve months, must set up numbered array for scaleBand
         .domain(
+          // twelve months, must set up numbered array for scaleBand
           this.wordMonths.map((m) => this.wordMonths.indexOf(m)),
         )
         .range([
@@ -149,13 +149,10 @@ export default {
         .attr('data-month', (d) => d.month - 1) // project wanting array-style counting?!
         .attr('data-temp', (d) => d3.format('0.2f')(this.baseTemperature + d.variance))
         // hover to show value with tooltip as defined in divTool above
-        .on('mouseover', () => {
+        .on('mouseover', (event, d) => {
           divTool
             .style('opacity', 1)
-            .style('display', 'flex'); // to align items vertically in css, also display
-        })
-        .on('mousemove', (event, d) => {
-          divTool
+            .style('display', 'flex') // to align items vertically in css; also display
             .attr('id', 'tooltip') // project requirement
             .attr('class', 'tooltip')
             .attr('data-year', d.year) // project requirement
@@ -293,7 +290,7 @@ export default {
 
 .chart-title {
   color: $text-gray;
-  font-family: "Roboto", Helvetica, Arial, sans-serif;
+  font-family: Roboto, Helvetica, Arial, sans-serif;
   margin-bottom: 0;
 }
 
@@ -310,7 +307,7 @@ export default {
 .axis-label {
   font-size: 0.8rem;
   font-style: italic;
-  font-family: "Roboto", Helvetica, Helvetica, sans-serif;
+  font-family: Roboto, Helvetica, sans-serif;
 }
 
 .legend-text {
@@ -324,7 +321,7 @@ export default {
   border-style: none;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
   color: $mouseover-text;
-  font-family: "Roboto", Helvetica, Arial, sans-serif;
+  font-family: Roboto, Helvetica, Arial, sans-serif;
   font-size: 13px;
   padding: 0.5rem 0.6rem;
   position: absolute;

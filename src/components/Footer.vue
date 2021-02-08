@@ -21,20 +21,20 @@ export default {
   <div class="footer-content">
     <div class="footer-copy">
       <a
+        class="footer-link"
         href="https://github.com/bradleyhop/"
         rel="noopener noreferer"
         target="_blank"
-        class="footer-link"
       >
         Bradley Smith
       </a>
         &#169;{{ currentYear }}
         [&nbsp;
       <a
+        class="footer-link"
         :href="githubRepo"
         rel="noopener noreferer"
         target="_blank"
-        class="footer-link"
       >
         Project GitHub
       </a>

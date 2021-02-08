@@ -17,8 +17,8 @@ export default {
     role="main"
   >
     <h1
-      id="title"
       class="project-title"
+      id="title"
     >
       Monthly Global Land-Surface Temperature
     </h1>

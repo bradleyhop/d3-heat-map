@@ -58,10 +58,9 @@ export default {
 
       // setup scale on x-axis (year)
       const xScale = d3.scaleTime()
-      // minus and plus one year to give padding for the data
         .domain([
           d3.min(this.heatData, (d) => d.year),
-          d3.max(this.heatData, (d) => d.year + 1),
+          d3.max(this.heatData, (d) => d.year + 1), // plus one year to give padding for the data
         ])
         .range([
           this.padding + this.paddingLeft,
@@ -161,7 +160,7 @@ export default {
               <span>Temp: ${d3.format('0.2f')(this.baseTemperature + d.variance)}&deg;</span><br/>
               <span>Variance: ${d3.format('0.2f')(d.variance)}&deg;</span>
             </p>`)
-            // funky offsets here because of setting .heatmap to display: relative;
+            // offsets for tooltip box
             .style('top', `${event.pageY - 80}px`)
             .style('left', `${event.pageX - 55}px`);
         })

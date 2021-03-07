@@ -32,9 +32,9 @@ export default {
     fetch(this.dataURL)
       .then((response) => response.json())
       .then((data) => {
-        // store obj within vue
-        this.heatData = data.monthlyVariance; // array of data
-        this.baseTemperature = data.baseTemperature; // base temp
+        // store obj within vue; make non-reactive since this data isn't going to change; speedup
+        this.heatData = Object.freeze(data.monthlyVariance); // array of data
+        this.baseTemperature = Object.freeze(data.baseTemperature); // base temp
       })
       .then(() => this.graphInit())
       .catch((error) => console.log(error));

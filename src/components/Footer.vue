@@ -23,7 +23,7 @@ export default {
       <a
         class="footer-link"
         href="https://github.com/bradleyhop/"
-        rel="noopener noreferer"
+        rel="noopener noreferrer"
         target="_blank"
       >
         Bradley Smith
@@ -33,7 +33,7 @@ export default {
       <a
         class="footer-link"
         :href="githubRepo"
-        rel="noopener noreferer"
+        rel="noopener noreferrer"
         target="_blank"
       >
         Project GitHub

@@ -1,5 +1,7 @@
 # d3-heat-map
 
+[Live Demo Here](https://bradleyhop.github.io/d3-heatmap-build/)
+
 Data Visualization Project for freeCodeCamp.org Data Visualization Project:
 Visualize Data with a Heat Map. This implementation uses Vue & D3 as the main technology stacks.
 

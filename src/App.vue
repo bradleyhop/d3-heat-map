@@ -44,8 +44,11 @@ export default {
   }
 }
 
-#app {
+html {
   background-color: #fff; // explicitly set to override any system themes
+}
+
+#app {
   color: $text-gray;
   display: flex; // boilerplate to keep footer down below
   flex-direction: column; // footer at the bottom ;)
